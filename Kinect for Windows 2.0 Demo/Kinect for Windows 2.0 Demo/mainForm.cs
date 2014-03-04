@@ -214,6 +214,7 @@ namespace Kinect_for_Windows_2._0_Demo
                     {
                         this.updateEyes(body);
                         this.updateMouth(body);
+                        this.updateHands(body);
                         this.updateEmotions(body);
                     }
                 }
@@ -234,6 +235,7 @@ namespace Kinect_for_Windows_2._0_Demo
             }
             return false;
         }
+ 
         private void updateEyes(Body body)
         {
             switch (body.Activities[Activity.EyeLeftClosed])
@@ -267,6 +269,39 @@ namespace Kinect_for_Windows_2._0_Demo
                 case DetectionResult.No:
                 default:
                     facialDiagram1.setMouth(MouthStatus.Closed);
+                    break;
+            }
+        }
+        private void updateHands(Body body)
+        {
+            switch (body.HandLeftState)
+            {
+                case HandState.Closed:
+                    this.leftHandStausLabel.Text = "Closed";
+                    break;
+                case HandState.Open:
+                    this.leftHandStausLabel.Text = "Open";
+                    break;
+                case HandState.Lasso:
+                    this.leftHandStausLabel.Text = "Lasso";
+                    break;
+                case HandState.NotTracked:
+                    this.leftHandStausLabel.Text = "Not Tracked";
+                    break;
+            }
+            switch (body.HandRightState)
+            {
+                case HandState.Closed:
+                    this.rightHandStatusLabel.Text = "Closed";
+                    break;
+                case HandState.Open:
+                    this.rightHandStatusLabel.Text = "Open";
+                    break;
+                case HandState.Lasso:
+                    this.rightHandStatusLabel.Text = "Lasso";
+                    break;
+                case HandState.NotTracked:
+                    this.rightHandStatusLabel.Text = "Not Tracked";
                     break;
             }
         }
