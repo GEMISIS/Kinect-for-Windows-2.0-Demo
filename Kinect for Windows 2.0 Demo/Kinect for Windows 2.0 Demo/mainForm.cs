@@ -207,6 +207,8 @@ namespace Kinect_for_Windows_2._0_Demo
                         facialDiagram1.setEyes(Eye.Left, EyeStatus.Closed);
                         facialDiagram1.setEyes(Eye.Right, EyeStatus.Closed);
                         facialDiagram1.setMouth(MouthStatus.Closed);
+                        this.leftHandStausLabel.Text = "Not Tracking";
+                        this.rightHandStatusLabel.Text = "Not Tracking";
                         this.emotionStatusLabel.Text = "Not Tracking";
                         this.bodyToTrack = -1;
                     }
