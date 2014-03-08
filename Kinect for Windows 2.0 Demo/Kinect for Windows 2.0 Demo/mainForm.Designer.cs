@@ -33,14 +33,15 @@
             this.leftHandLabel = new System.Windows.Forms.Label();
             this.rightHandLabel = new System.Windows.Forms.Label();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
-            this.facialDiagram1 = new Kinect_for_Windows_2._0_Demo.FacialDiagram();
             this.emotionLabel = new System.Windows.Forms.Label();
             this.emotionStatusLabel = new System.Windows.Forms.Label();
+            this.facialDiagram1 = new Kinect_for_Windows_2._0_Demo.FacialDiagram();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
             // 
             // leftHandStausLabel
             // 
+            this.leftHandStausLabel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.leftHandStausLabel.AutoSize = true;
             this.leftHandStausLabel.Font = new System.Drawing.Font("Microsoft Sans Serif", 16F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.leftHandStausLabel.Location = new System.Drawing.Point(789, 242);
@@ -51,6 +52,7 @@
             // 
             // rightHandStatusLabel
             // 
+            this.rightHandStatusLabel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.rightHandStatusLabel.AutoSize = true;
             this.rightHandStatusLabel.Font = new System.Drawing.Font("Microsoft Sans Serif", 16F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.rightHandStatusLabel.Location = new System.Drawing.Point(789, 319);
@@ -61,6 +63,7 @@
             // 
             // leftHandLabel
             // 
+            this.leftHandLabel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.leftHandLabel.AutoSize = true;
             this.leftHandLabel.Font = new System.Drawing.Font("Microsoft Sans Serif", 16F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.leftHandLabel.Location = new System.Drawing.Point(802, 216);
@@ -71,6 +74,7 @@
             // 
             // rightHandLabel
             // 
+            this.rightHandLabel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.rightHandLabel.AutoSize = true;
             this.rightHandLabel.Font = new System.Drawing.Font("Microsoft Sans Serif", 16F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.rightHandLabel.Location = new System.Drawing.Point(794, 293);
@@ -81,21 +85,18 @@
             // 
             // pictureBox1
             // 
+            this.pictureBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.pictureBox1.Location = new System.Drawing.Point(12, 13);
             this.pictureBox1.Name = "pictureBox1";
             this.pictureBox1.Size = new System.Drawing.Size(760, 485);
             this.pictureBox1.TabIndex = 0;
             this.pictureBox1.TabStop = false;
             // 
-            // facialDiagram1
-            // 
-            this.facialDiagram1.Location = new System.Drawing.Point(778, 13);
-            this.facialDiagram1.Name = "facialDiagram1";
-            this.facialDiagram1.Size = new System.Drawing.Size(150, 200);
-            this.facialDiagram1.TabIndex = 3;
-            // 
             // emotionLabel
             // 
+            this.emotionLabel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.emotionLabel.AutoSize = true;
             this.emotionLabel.Font = new System.Drawing.Font("Microsoft Sans Serif", 16F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.emotionLabel.Location = new System.Drawing.Point(806, 370);
@@ -106,6 +107,7 @@
             // 
             // emotionStatusLabel
             // 
+            this.emotionStatusLabel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.emotionStatusLabel.AutoSize = true;
             this.emotionStatusLabel.Font = new System.Drawing.Font("Microsoft Sans Serif", 16F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.emotionStatusLabel.Location = new System.Drawing.Point(789, 396);
@@ -113,6 +115,14 @@
             this.emotionStatusLabel.Size = new System.Drawing.Size(134, 26);
             this.emotionStatusLabel.TabIndex = 6;
             this.emotionStatusLabel.Text = "Not Tracking";
+            // 
+            // facialDiagram1
+            // 
+            this.facialDiagram1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.facialDiagram1.Location = new System.Drawing.Point(778, 13);
+            this.facialDiagram1.Name = "facialDiagram1";
+            this.facialDiagram1.Size = new System.Drawing.Size(150, 200);
+            this.facialDiagram1.TabIndex = 3;
             // 
             // mainForm
             // 
@@ -127,6 +137,7 @@
             this.Controls.Add(this.rightHandStatusLabel);
             this.Controls.Add(this.leftHandStausLabel);
             this.Controls.Add(this.pictureBox1);
+            this.MinimumSize = new System.Drawing.Size(956, 554);
             this.Name = "mainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Kinect for Windows 2.0 Demo";

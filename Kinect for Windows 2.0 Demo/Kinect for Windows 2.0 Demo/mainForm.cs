@@ -21,13 +21,9 @@ namespace Kinect_for_Windows_2._0_Demo
         private KinectSensor kinectSensor = null;
 
         /// <summary>
-        /// The reader for reading data from a color frame.
+        /// A reader for managing multiple frames.
         /// </summary>
-        private ColorFrameReader colorFrameReader = null;
-        /// <summary>
-        /// The reader for getting information on the bodies the Kinect can see.
-        /// </summary>
-        private BodyFrameReader bodyFrameReader = null;
+        private MultiSourceFrameReader multiSourceFrameReader = null;
 
         /// <summary>
         /// The bitmap to show for the color image of what the Kinect sees.
@@ -39,9 +35,13 @@ namespace Kinect_for_Windows_2._0_Demo
         private byte[] colorImagePixelData = null;
 
         /// <summary>
+        /// The number of potential bodies.
+        /// </summary>
+        private int bodyCount = 0;
+        /// <summary>
         /// The list of bodies that the Kinect can see and their properties.
         /// </summary>
-        private List<Body> bodies = new List<Body>();
+        private Body[] bodies = null;
         /// <summary>
         /// The index of the body that should be currently tracked.
         /// </summary>
@@ -62,38 +62,45 @@ namespace Kinect_for_Windows_2._0_Demo
                 {
                     this.kinectSensor.Open();
 
-                    this.colorFrameReader = this.kinectSensor.ColorFrameSource.OpenReader();
-                    this.bodyFrameReader = this.kinectSensor.BodyFrameSource.OpenReader();
+                    FrameDescription colorFrameDescription = this.kinectSensor.ColorFrameSource.FrameDescription;
+                    this.colorImagePixelData = new byte[colorFrameDescription.Width * colorFrameDescription.Height * 4];
 
-                    this.setupColorFrameReader();
-                    this.setupBodyFrameReader();
+                    this.bodyCount = this.kinectSensor.BodyFrameSource.BodyCount;
+                    this.bodies = new Body[this.bodyCount];
+
+                    this.multiSourceFrameReader = this.kinectSensor.OpenMultiSourceFrameReader(FrameSourceTypes.Color | FrameSourceTypes.Body);
+
+                    this.multiSourceFrameReader.MultiSourceFrameArrived += multiSourceFrameReader_MultiSourceFrameArrived;
                 }
             }
         }
 
-        private void setupColorFrameReader()
+        void multiSourceFrameReader_MultiSourceFrameArrived(object sender, MultiSourceFrameArrivedEventArgs e)
         {
-            if (this.colorFrameReader != null)
+            MultiSourceFrameReference msFrameReference = e.FrameReference;
+
+            try
             {
-                FrameDescription colorFrameDescription = this.kinectSensor.ColorFrameSource.FrameDescription;
-                this.colorImagePixelData = new byte[colorFrameDescription.Width * colorFrameDescription.Height * 4];
-             
-                this.colorFrameReader.FrameArrived += colorFrameReader_FrameArrived;
+                MultiSourceFrame msFrame = msFrameReference.AcquireFrame();
+
+                if (msFrame != null)
+                {
+                    using (msFrame)
+                    {
+                        ColorFrameReference colorFrameReference = msFrame.ColorFrameReference;
+                        BodyFrameReference bodyFrameReference = msFrame.BodyFrameReference;
+                        useColorFrame(colorFrameReference);
+                        useBodyFrame(bodyFrameReference);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
             }
         }
 
-        private void setupBodyFrameReader()
+        void useColorFrame(ColorFrameReference colorFrameReference)
         {
-            if (this.bodyFrameReader != null)
-            {
-                this.bodyFrameReader.FrameArrived += bodyFrameReader_FrameArrived;
-            }
-        }
-
-        void colorFrameReader_FrameArrived(object sender, ColorFrameArrivedEventArgs e)
-        {
-            ColorFrameReference colorFrameReference = e.FrameReference;
-
             try
             {
                 ColorFrame colorFrame = colorFrameReference.AcquireFrame();
@@ -113,19 +120,19 @@ namespace Kinect_for_Windows_2._0_Demo
 
                         this.updateBitmap(colorFrame.FrameDescription.Width, colorFrame.FrameDescription.Height);
 
-                        this.pictureBox1.Image = (Image)(new Bitmap(this.colorImageBitmap, this.pictureBox1.Image.Size));
+                        this.pictureBox1.Image = new Bitmap(this.colorImageBitmap, this.pictureBox1.Width, this.pictureBox1.Height);
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception er)
             {
+                string message = er.Message;
+                Console.WriteLine(message);
                 // Don't worry about empty frames.
             }
         }
-        void bodyFrameReader_FrameArrived(object sender, BodyFrameArrivedEventArgs e)
+        void useBodyFrame(BodyFrameReference bodyFrameReference)
         {
-            BodyFrameReference bodyFrameReference = e.FrameReference;
-
             try
             {
                 BodyFrame bodyFrame = bodyFrameReference.AcquireFrame();
@@ -134,7 +141,6 @@ namespace Kinect_for_Windows_2._0_Demo
                 {
                     using (bodyFrame)
                     {
-                        this.bodies.Clear();
                         bodyFrame.GetAndRefreshBodyData(this.bodies);
                         if (this.bodyToTrack < 0)
                         {
@@ -148,35 +154,36 @@ namespace Kinect_for_Windows_2._0_Demo
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                string message = ex.Message;
+                Console.WriteLine(message);
                 // Don't worry about empty frames.
             }
         }
 
         private void updateBitmap(int width, int height)
         {
-            this.colorImageBitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);
+            this.colorImageBitmap = new Bitmap(width, height, PixelFormat.Format32bppRgb);
             BitmapData bmpData = this.colorImageBitmap.LockBits(new Rectangle(0, 0, width, height),
                 ImageLockMode.WriteOnly, this.colorImageBitmap.PixelFormat);
             IntPtr ptr = bmpData.Scan0;
 
             int bytes = bmpData.Stride * this.colorImageBitmap.Height;
-            byte[] rgbaValues = new byte[bytes];
 
-            Marshal.Copy(rgbaValues, 0, ptr, bytes);
+            Marshal.Copy(this.colorImagePixelData, 0, ptr, bytes);
             this.colorImageBitmap.UnlockBits(bmpData);
         }
 
         private void findBodyToTrack()
         {
-            foreach (Body body in this.bodies)
+            for (int i = 0; i < this.bodyCount;i += 1)
             {
-                if (body.IsTracked)
+                if (this.bodies[i].IsTracked)
                 {
-                    if (this.startTrackingGesture(body))
+                    if (this.startTrackingGesture(this.bodies[i]))
                     {
-                        this.bodyToTrack = this.bodies.IndexOf(body);
+                        this.bodyToTrack = i;
                         break;
                     }
                 }
@@ -184,7 +191,7 @@ namespace Kinect_for_Windows_2._0_Demo
         }
         private bool startTrackingGesture(Body body)
         {
-            if (body.Activities[Activity.LookingAway] == DetectionResult.No)
+            //if (body.Activities[Activity.LookingAway] == DetectionResult.No)
             {
                 if (body.HandLeftState == HandState.Lasso && body.HandRightState == HandState.Open)
                 {
@@ -228,7 +235,7 @@ namespace Kinect_for_Windows_2._0_Demo
         }
         private bool stopTrackingGesture(Body body)
         {
-            if (body.Activities[Activity.LookingAway] == DetectionResult.Yes)
+           // if (body.Activities[Activity.LookingAway] == DetectionResult.Yes)
             {
                 if (body.HandLeftState == HandState.Open && body.HandRightState == HandState.Lasso)
                 {
@@ -329,13 +336,9 @@ namespace Kinect_for_Windows_2._0_Demo
 
         private void Form1_FormClosed(object sender, FormClosedEventArgs e)
         {
-            if (this.colorFrameReader != null)
+            if (this.multiSourceFrameReader != null)
             {
-                this.colorFrameReader.Dispose();
-            }
-            if (this.bodyFrameReader != null)
-            {
-                this.bodyFrameReader.Dispose();
+                this.multiSourceFrameReader.Dispose();
             }
 
             if (this.kinectSensor != null)
