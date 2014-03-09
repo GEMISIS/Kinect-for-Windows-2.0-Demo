@@ -109,13 +109,13 @@ namespace Kinect_for_Windows_2._0_Demo
                 {
                     using (colorFrame)
                     {
-                        if (colorFrame.RawColorImageFormat == ColorImageFormat.Rgba)
+                        if (colorFrame.RawColorImageFormat == ColorImageFormat.Bgra)
                         {
                             colorFrame.CopyRawFrameDataToArray(this.colorImagePixelData);
                         }
                         else
                         {
-                            colorFrame.CopyConvertedFrameDataToArray(this.colorImagePixelData, ColorImageFormat.Rgba);
+                            colorFrame.CopyConvertedFrameDataToArray(this.colorImagePixelData, ColorImageFormat.Bgra);
                         }
 
                         this.updateBitmap(colorFrame.FrameDescription.Width, colorFrame.FrameDescription.Height);
@@ -164,7 +164,7 @@ namespace Kinect_for_Windows_2._0_Demo
 
         private void updateBitmap(int width, int height)
         {
-            this.colorImageBitmap = new Bitmap(width, height, PixelFormat.Format32bppRgb);
+            this.colorImageBitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);
             BitmapData bmpData = this.colorImageBitmap.LockBits(new Rectangle(0, 0, width, height),
                 ImageLockMode.WriteOnly, this.colorImageBitmap.PixelFormat);
             IntPtr ptr = bmpData.Scan0;
