@@ -48,6 +48,12 @@
     <Compile Include="FacialDiagram.Designer.cs">
       <DependentUpon>FacialDiagram.cs</DependentUpon>
     </Compile>
+    <Compile Include="PersonRadar.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="PersonRadar.Designer.cs">
+      <DependentUpon>PersonRadar.cs</DependentUpon>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -58,6 +64,9 @@
   <ItemGroup>
     <EmbeddedResource Include="FacialDiagram.resx">
       <DependentUpon>FacialDiagram.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="PersonRadar.resx">
+      <DependentUpon>PersonRadar.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -81,6 +90,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Images\Face\hair_brown.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Images\Radar\radar_dot.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

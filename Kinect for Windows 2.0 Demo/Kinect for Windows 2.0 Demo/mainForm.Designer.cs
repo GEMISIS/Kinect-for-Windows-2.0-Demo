@@ -36,6 +36,7 @@
             this.emotionLabel = new System.Windows.Forms.Label();
             this.emotionStatusLabel = new System.Windows.Forms.Label();
             this.facialDiagram1 = new Kinect_for_Windows_2._0_Demo.FacialDiagram();
+            this.personRadar1 = new Custom_Controls.PersonRadar();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
             // 
@@ -90,7 +91,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.pictureBox1.Location = new System.Drawing.Point(12, 13);
             this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(760, 485);
+            this.pictureBox1.Size = new System.Drawing.Size(760, 562);
             this.pictureBox1.TabIndex = 0;
             this.pictureBox1.TabStop = false;
             // 
@@ -124,11 +125,20 @@
             this.facialDiagram1.Size = new System.Drawing.Size(150, 200);
             this.facialDiagram1.TabIndex = 3;
             // 
+            // personRadar1
+            // 
+            this.personRadar1.BackColor = System.Drawing.SystemColors.ActiveCaption;
+            this.personRadar1.Location = new System.Drawing.Point(778, 425);
+            this.personRadar1.Name = "personRadar1";
+            this.personRadar1.Size = new System.Drawing.Size(150, 150);
+            this.personRadar1.TabIndex = 8;
+            // 
             // mainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(940, 515);
+            this.ClientSize = new System.Drawing.Size(940, 580);
+            this.Controls.Add(this.personRadar1);
             this.Controls.Add(this.emotionLabel);
             this.Controls.Add(this.emotionStatusLabel);
             this.Controls.Add(this.rightHandLabel);
@@ -159,6 +169,7 @@
         private System.Windows.Forms.Label rightHandLabel;
         private System.Windows.Forms.Label emotionLabel;
         private System.Windows.Forms.Label emotionStatusLabel;
+        private Custom_Controls.PersonRadar personRadar1;
     }
 }
 

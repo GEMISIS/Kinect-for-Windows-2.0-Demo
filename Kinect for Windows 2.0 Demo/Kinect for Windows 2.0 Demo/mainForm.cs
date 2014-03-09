@@ -225,6 +225,7 @@ namespace Kinect_for_Windows_2._0_Demo
                         this.updateMouth(body);
                         this.updateHands(body);
                         this.updateEmotions(body);
+                        this.updateRadar(body);
                     }
                 }
                 else
@@ -332,6 +333,12 @@ namespace Kinect_for_Windows_2._0_Demo
                     this.emotionStatusLabel.Text = "Neutral";
                     break;
             }
+        }
+        private void updateRadar(Body body)
+        {
+            Point position = new Point(70, 70);
+            position = new Point((int)((body.Joints[JointType.SpineMid].Position.X + 1) * 150 / 2), (int)(body.Joints[JointType.SpineMid].Position.Z * 150 / 6));
+            this.personRadar1.setPosition(position);
         }
 
         private void Form1_FormClosed(object sender, FormClosedEventArgs e)
