@@ -13,6 +13,13 @@ using Microsoft.Kinect;
 
 namespace Kinect_for_Windows_2._0_Demo
 {
+    public enum ImageType
+    {
+        Color = 0,
+        Depth = 1,
+        IR = 2,
+        LEIR = 3
+    }
     public partial class mainForm : Form
     {
         /// <summary>
@@ -33,6 +40,14 @@ namespace Kinect_for_Windows_2._0_Demo
         /// The raw pixel data for the color image of what the Kinect sees.
         /// </summary>
         private byte[] colorImagePixelData = null;
+        /// <summary>
+        /// The raw pixel data for the IR image of what the Kinect sees.
+        /// </summary>
+        private ushort[] irImagePixelData = null;
+        /// <summary>
+        /// The raw pixel data for the long IR exposure image of what the Kinect sees.
+        /// </summary>
+        private ushort[] irLEImagePixelData = null;
 
         /// <summary>
         /// The number of potential bodies.
@@ -46,6 +61,8 @@ namespace Kinect_for_Windows_2._0_Demo
         /// The index of the body that should be currently tracked.
         /// </summary>
         private int bodyToTrack = -1;
+
+        ImageType imageType = ImageType.Color;
 
         public mainForm()
         {
@@ -64,11 +81,15 @@ namespace Kinect_for_Windows_2._0_Demo
 
                     FrameDescription colorFrameDescription = this.kinectSensor.ColorFrameSource.FrameDescription;
                     this.colorImagePixelData = new byte[colorFrameDescription.Width * colorFrameDescription.Height * 4];
+                    FrameDescription irleFrameDescription = this.kinectSensor.LongExposureInfraredFrameSource.FrameDescription;
+                    this.irLEImagePixelData = new ushort[irleFrameDescription.LengthInPixels * irleFrameDescription.BytesPerPixel];
+                    FrameDescription irFrameDescription = this.kinectSensor.InfraredFrameSource.FrameDescription;
+                    this.irImagePixelData = new ushort[irFrameDescription.Width * irFrameDescription.Height];
 
                     this.bodyCount = this.kinectSensor.BodyFrameSource.BodyCount;
                     this.bodies = new Body[this.bodyCount];
 
-                    this.multiSourceFrameReader = this.kinectSensor.OpenMultiSourceFrameReader(FrameSourceTypes.Color | FrameSourceTypes.Body);
+                    this.multiSourceFrameReader = this.kinectSensor.OpenMultiSourceFrameReader(FrameSourceTypes.Infrared | FrameSourceTypes.Color | FrameSourceTypes.Body);
 
                     this.multiSourceFrameReader.MultiSourceFrameArrived += multiSourceFrameReader_MultiSourceFrameArrived;
                 }
@@ -87,9 +108,25 @@ namespace Kinect_for_Windows_2._0_Demo
                 {
                     using (msFrame)
                     {
+                        LongExposureInfraredFrameReference leirFrameReference = msFrame.LongExposureInfraredFrameReference;
+                        InfraredFrameReference irFrameReference = msFrame.InfraredFrameReference;
                         ColorFrameReference colorFrameReference = msFrame.ColorFrameReference;
                         BodyFrameReference bodyFrameReference = msFrame.BodyFrameReference;
-                        useColorFrame(colorFrameReference);
+                        switch (this.imageType)
+                        {
+                            case ImageType.Color:
+                                useColorFrame(colorFrameReference);
+                                break;
+                            case ImageType.Depth:
+                                useColorFrame(colorFrameReference);
+                                break;
+                            case ImageType.IR:
+                                useIRFrame(irFrameReference);
+                                break;
+                            case ImageType.LEIR:
+                                useLIRFrame(leirFrameReference);
+                                break;
+                        }
                         useBodyFrame(bodyFrameReference);
                     }
                 }
@@ -118,7 +155,57 @@ namespace Kinect_for_Windows_2._0_Demo
                             colorFrame.CopyConvertedFrameDataToArray(this.colorImagePixelData, ColorImageFormat.Bgra);
                         }
 
-                        this.updateBitmap(colorFrame.FrameDescription.Width, colorFrame.FrameDescription.Height);
+                        this.updateBitmap(colorFrame.FrameDescription.Width, colorFrame.FrameDescription.Height, PixelFormat.Format32bppArgb, this.colorImagePixelData);
+
+                        this.pictureBox1.Image = new Bitmap(this.colorImageBitmap, this.pictureBox1.Width, this.pictureBox1.Height);
+                    }
+                }
+            }
+            catch (Exception er)
+            {
+                string message = er.Message;
+                Console.WriteLine(message);
+                // Don't worry about empty frames.
+            }
+        }
+        void useIRFrame(InfraredFrameReference irFrameReference)
+        {
+            try
+            {
+                InfraredFrame IRFrame = irFrameReference.AcquireFrame();
+
+                if (IRFrame != null)
+                {
+                    using (IRFrame)
+                    {
+                        IRFrame.CopyFrameDataToArray(this.irImagePixelData);
+
+                        this.updateBitmap(IRFrame.FrameDescription.Width, IRFrame.FrameDescription.Height, this.irImagePixelData);
+
+                        this.pictureBox1.Image = new Bitmap(this.colorImageBitmap, this.pictureBox1.Width, this.pictureBox1.Height);
+                    }
+                }
+            }
+            catch (Exception er)
+            {
+                string message = er.Message;
+                Console.WriteLine(message);
+                // Don't worry about empty frames.
+            }
+        }
+        void useLIRFrame(LongExposureInfraredFrameReference leIRFrameReference)
+        {
+            try
+            {
+                LongExposureInfraredFrame leIRFrame = leIRFrameReference.AcquireFrame();
+
+                if (leIRFrame != null)
+                {
+                    using (leIRFrame)
+                    {
+                        leIRFrame.CopyFrameDataToArray(this.irLEImagePixelData);
+
+                        this.updateBitmap(leIRFrame.FrameDescription.Width, leIRFrame.FrameDescription.Height, this.irLEImagePixelData);
 
                         this.pictureBox1.Image = new Bitmap(this.colorImageBitmap, this.pictureBox1.Width, this.pictureBox1.Height);
                     }
@@ -162,7 +249,19 @@ namespace Kinect_for_Windows_2._0_Demo
             }
         }
 
-        private void updateBitmap(int width, int height)
+        private void updateBitmap(int width, int height, PixelFormat pixelFormat, byte[] data)
+        {
+            this.colorImageBitmap = new Bitmap(width, height, pixelFormat);
+            BitmapData bmpData = this.colorImageBitmap.LockBits(new Rectangle(0, 0, width, height),
+                ImageLockMode.WriteOnly, this.colorImageBitmap.PixelFormat);
+            IntPtr ptr = bmpData.Scan0;
+
+            int bytes = bmpData.Stride * this.colorImageBitmap.Height;
+
+            Marshal.Copy(data, 0, ptr, bytes);
+            this.colorImageBitmap.UnlockBits(bmpData);
+        }
+        private void updateBitmap(int width, int height, ushort[] rawData)
         {
             this.colorImageBitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);
             BitmapData bmpData = this.colorImageBitmap.LockBits(new Rectangle(0, 0, width, height),
@@ -171,7 +270,32 @@ namespace Kinect_for_Windows_2._0_Demo
 
             int bytes = bmpData.Stride * this.colorImageBitmap.Height;
 
-            Marshal.Copy(this.colorImagePixelData, 0, ptr, bytes);
+            byte[] data = new byte[rawData.Length * 4];
+            int pixel = 0;
+            for (int i = 0; i < rawData.Length; i += 1)
+            {
+                byte intensity = (byte)(255 - (rawData[i] >> 6));
+                data[pixel++] = intensity;
+                data[pixel++] = intensity;
+                data[pixel++] = intensity;
+                data[pixel++] = 255;
+            }
+
+            Marshal.Copy(data, 0, ptr, bytes);
+            this.colorImageBitmap.UnlockBits(bmpData);
+        }
+        private void updateBitmap(int width, int height, PixelFormat pixelFormat, ushort[] data)
+        {
+            this.colorImageBitmap = new Bitmap(width, height, pixelFormat);
+            BitmapData bmpData = this.colorImageBitmap.LockBits(new Rectangle(0, 0, width, height),
+                ImageLockMode.WriteOnly, this.colorImageBitmap.PixelFormat);
+            IntPtr ptr = bmpData.Scan0;
+
+            int bytes = bmpData.Stride * this.colorImageBitmap.Height;
+
+            byte[] newData = new byte[data.Length * sizeof(byte)];
+            Buffer.BlockCopy(data, 0, newData, 0, newData.Length);
+            Marshal.Copy(newData, 0, ptr, bytes);
             this.colorImageBitmap.UnlockBits(bmpData);
         }
 
@@ -217,6 +341,7 @@ namespace Kinect_for_Windows_2._0_Demo
                         this.leftHandStausLabel.Text = "Not Tracking";
                         this.rightHandStatusLabel.Text = "Not Tracking";
                         this.emotionStatusLabel.Text = "Not Tracking";
+                        updateRadar(null);
                         this.bodyToTrack = -1;
                     }
                     else
@@ -337,7 +462,10 @@ namespace Kinect_for_Windows_2._0_Demo
         private void updateRadar(Body body)
         {
             Point position = new Point(70, 70);
-            position = new Point((int)((body.Joints[JointType.SpineMid].Position.X + 1) * 150 / 2), (int)(body.Joints[JointType.SpineMid].Position.Z * 150 / 6));
+            if (body != null)
+            {
+                position = new Point((int)((body.Joints[JointType.SpineMid].Position.X + 1) * 150 / 2), (int)(body.Joints[JointType.SpineMid].Position.Z * 150 / 6));
+            }
             this.personRadar1.setPosition(position);
         }
 
@@ -359,6 +487,37 @@ namespace Kinect_for_Windows_2._0_Demo
             }
 
             this.pictureBox1.Dispose();
+        }
+
+        private void colorButton_Click(object sender, EventArgs e)
+        {
+            imageType = ImageType.Color;
+        }
+
+        private void depthButton_Click(object sender, EventArgs e)
+        {
+            imageType = ImageType.Depth;
+        }
+
+        private void irButton_Click(object sender, EventArgs e)
+        {
+            imageType = ImageType.IR;
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            imageType = ImageType.LEIR;
+        }
+
+        private void takePicButton_Click(object sender, EventArgs e)
+        {
+            SaveFileDialog dialog = new SaveFileDialog();
+            dialog.Filter = "png files (*.png)|*.png";
+            dialog.FilterIndex = 1;
+            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                this.pictureBox1.Image.Save(dialog.FileName);
+            }
         }
     }
 }
