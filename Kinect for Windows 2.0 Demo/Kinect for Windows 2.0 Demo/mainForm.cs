@@ -89,7 +89,7 @@ namespace Kinect_for_Windows_2._0_Demo
                     this.bodyCount = this.kinectSensor.BodyFrameSource.BodyCount;
                     this.bodies = new Body[this.bodyCount];
 
-                    this.multiSourceFrameReader = this.kinectSensor.OpenMultiSourceFrameReader(FrameSourceTypes.Infrared | FrameSourceTypes.Color | FrameSourceTypes.Body);
+                    this.multiSourceFrameReader = this.kinectSensor.OpenMultiSourceFrameReader(FrameSourceTypes.Infrared | FrameSourceTypes.Depth | FrameSourceTypes.Color | FrameSourceTypes.Body);
 
                     this.multiSourceFrameReader.MultiSourceFrameArrived += multiSourceFrameReader_MultiSourceFrameArrived;
                 }
@@ -111,6 +111,7 @@ namespace Kinect_for_Windows_2._0_Demo
                         LongExposureInfraredFrameReference leirFrameReference = msFrame.LongExposureInfraredFrameReference;
                         InfraredFrameReference irFrameReference = msFrame.InfraredFrameReference;
                         ColorFrameReference colorFrameReference = msFrame.ColorFrameReference;
+                        DepthFrameReference depthFrameReference = msFrame.DepthFrameReference;
                         BodyFrameReference bodyFrameReference = msFrame.BodyFrameReference;
                         switch (this.imageType)
                         {
@@ -118,7 +119,7 @@ namespace Kinect_for_Windows_2._0_Demo
                                 useColorFrame(colorFrameReference);
                                 break;
                             case ImageType.Depth:
-                                useColorFrame(colorFrameReference);
+                                useDepthFrame(depthFrameReference);
                                 break;
                             case ImageType.IR:
                                 useIRFrame(irFrameReference);
@@ -168,6 +169,31 @@ namespace Kinect_for_Windows_2._0_Demo
                 // Don't worry about empty frames.
             }
         }
+        void useDepthFrame(DepthFrameReference depthFrameReference)
+        {
+            try
+            {
+                DepthFrame depthFrame = depthFrameReference.AcquireFrame();
+
+                if (depthFrame != null)
+                {
+                    using (depthFrame)
+                    {
+                        depthFrame.CopyFrameDataToArray(this.irImagePixelData);
+
+                        this.updateBitmap(depthFrame.FrameDescription.Width, depthFrame.FrameDescription.Height, this.irImagePixelData, true);
+
+                        this.pictureBox1.Image = new Bitmap(this.colorImageBitmap, this.pictureBox1.Width, this.pictureBox1.Height);
+                    }
+                }
+            }
+            catch (Exception er)
+            {
+                string message = er.Message;
+                Console.WriteLine(message);
+                // Don't worry about empty frames.
+            }
+        }
         void useIRFrame(InfraredFrameReference irFrameReference)
         {
             try
@@ -180,7 +206,7 @@ namespace Kinect_for_Windows_2._0_Demo
                     {
                         IRFrame.CopyFrameDataToArray(this.irImagePixelData);
 
-                        this.updateBitmap(IRFrame.FrameDescription.Width, IRFrame.FrameDescription.Height, this.irImagePixelData);
+                        this.updateBitmap(IRFrame.FrameDescription.Width, IRFrame.FrameDescription.Height, this.irImagePixelData, false);
 
                         this.pictureBox1.Image = new Bitmap(this.colorImageBitmap, this.pictureBox1.Width, this.pictureBox1.Height);
                     }
@@ -205,7 +231,7 @@ namespace Kinect_for_Windows_2._0_Demo
                     {
                         leIRFrame.CopyFrameDataToArray(this.irLEImagePixelData);
 
-                        this.updateBitmap(leIRFrame.FrameDescription.Width, leIRFrame.FrameDescription.Height, this.irLEImagePixelData);
+                        this.updateBitmap(leIRFrame.FrameDescription.Width, leIRFrame.FrameDescription.Height, this.irLEImagePixelData, false);
 
                         this.pictureBox1.Image = new Bitmap(this.colorImageBitmap, this.pictureBox1.Width, this.pictureBox1.Height);
                     }
@@ -261,7 +287,8 @@ namespace Kinect_for_Windows_2._0_Demo
             Marshal.Copy(data, 0, ptr, bytes);
             this.colorImageBitmap.UnlockBits(bmpData);
         }
-        private void updateBitmap(int width, int height, ushort[] rawData)
+        ushort[] oldRawData = null;
+        private void updateBitmap(int width, int height, ushort[] rawData, bool colored)
         {
             this.colorImageBitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);
             BitmapData bmpData = this.colorImageBitmap.LockBits(new Rectangle(0, 0, width, height),
@@ -270,18 +297,49 @@ namespace Kinect_for_Windows_2._0_Demo
 
             int bytes = bmpData.Stride * this.colorImageBitmap.Height;
 
-            byte[] data = new byte[rawData.Length * 4];
-            int pixel = 0;
-            for (int i = 0; i < rawData.Length; i += 1)
+            if (colored)
             {
-                byte intensity = (byte)(255 - (rawData[i] >> 6));
-                data[pixel++] = intensity;
-                data[pixel++] = intensity;
-                data[pixel++] = intensity;
-                data[pixel++] = 255;
+                byte[] data = new byte[rawData.Length * 4];
+                int pixel = 0;
+                for (int i = 0; i < rawData.Length; i += 1)
+                {
+                    if (rawData[i] == 0 && oldRawData != null)
+                    {
+                        rawData[i] = oldRawData[i];
+                    }
+                    byte b = (byte)(255 - (rawData[i] >> 3));
+                    byte g = (byte)(255 - (rawData[i] >> 2));
+                    byte r = (byte)(255 - (rawData[i] >> 1));
+                    data[pixel++] = b;
+                    data[pixel++] = g;
+                    data[pixel++] = r;
+                    data[pixel++] = 255;
+                }
+                oldRawData = new ushort[rawData.Length];
+                Buffer.BlockCopy(rawData, 0, oldRawData, 0, rawData.Length);
+
+                Marshal.Copy(data, 0, ptr, bytes);
+            }
+            else
+            {
+                byte[] data = new byte[rawData.Length * 4];
+                int pixel = 0;
+                for (int i = 0; i < rawData.Length; i += 1)
+                {
+                    int rawValue = rawData[i];
+                    byte intensity = (byte)(rawValue >> 8);
+
+                    data[pixel++] = intensity;
+                    data[pixel++] = intensity;
+                    data[pixel++] = intensity;
+                    data[pixel++] = 255;
+                }
+                oldRawData = new ushort[rawData.Length];
+                Buffer.BlockCopy(rawData, 0, oldRawData, 0, rawData.Length);
+
+                Marshal.Copy(data, 0, ptr, bytes);
             }
 
-            Marshal.Copy(data, 0, ptr, bytes);
             this.colorImageBitmap.UnlockBits(bmpData);
         }
         private void updateBitmap(int width, int height, PixelFormat pixelFormat, ushort[] data)
