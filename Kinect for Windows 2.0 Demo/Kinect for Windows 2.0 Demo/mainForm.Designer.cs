@@ -185,7 +185,8 @@
             // 
             // takePicButton
             // 
-            this.takePicButton.Location = new System.Drawing.Point(832, 609);
+            this.takePicButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.takePicButton.Location = new System.Drawing.Point(840, 609);
             this.takePicButton.Name = "takePicButton";
             this.takePicButton.Size = new System.Drawing.Size(79, 23);
             this.takePicButton.TabIndex = 13;

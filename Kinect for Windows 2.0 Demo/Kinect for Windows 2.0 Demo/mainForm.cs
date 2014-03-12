@@ -287,7 +287,6 @@ namespace Kinect_for_Windows_2._0_Demo
             Marshal.Copy(data, 0, ptr, bytes);
             this.colorImageBitmap.UnlockBits(bmpData);
         }
-        ushort[] oldRawData = null;
         private void updateBitmap(int width, int height, ushort[] rawData, bool colored)
         {
             this.colorImageBitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);
@@ -303,20 +302,63 @@ namespace Kinect_for_Windows_2._0_Demo
                 int pixel = 0;
                 for (int i = 0; i < rawData.Length; i += 1)
                 {
-                    if (rawData[i] == 0 && oldRawData != null)
+                    int value = rawData[i];
+                    int widthTotal = 5;
+                    int heightTotal = 5;
+                    int maxArea = 8;
+                    if (value == -1)
                     {
-                        rawData[i] = oldRawData[i];
+                        int temp = 0;
+                        int tempTotal = 0;
+                        for (int y = 0; y < heightTotal; y += 1)
+                        {
+                            for (int x = 0; x < widthTotal; x += 1)
+                            {
+                                if (tempTotal > maxArea || i + (width * -y) - x < 0 || i + (width * y) + x >= rawData.Length)
+                                {
+                                    break;
+                                }
+
+                                if (rawData[i + (width * y) + x] != 0)
+                                {
+                                    temp += rawData[i + width * y + x];
+                                    tempTotal += 1;
+                                }
+                                if (rawData[i + (width * y) - x] != 0)
+                                {
+                                    temp += rawData[i + width * y + x];
+                                    tempTotal += 1;
+                                }
+                                if (rawData[i + (width * -y) + x] != 0)
+                                {
+                                    temp += rawData[i + width * y + x];
+                                    tempTotal += 1;
+                                }
+                                if (rawData[i + (width * -y) - x] != 0)
+                                {
+                                    temp += rawData[i + width * y + x];
+                                    tempTotal += 1;
+                                }
+                            }
+                            if (tempTotal > maxArea)
+                            {
+                                break;
+                            }
+                        }
+                        if (tempTotal > 0)
+                        {
+                            value = (temp / tempTotal);
+                            rawData[i] = (byte)value;
+                        }
                     }
-                    byte b = (byte)(255 - (rawData[i] >> 3));
-                    byte g = (byte)(255 - (rawData[i] >> 2));
-                    byte r = (byte)(255 - (rawData[i] >> 1));
+                    byte b = (byte)(255 - (value >> 6));
+                    byte g = (byte)(255 - (value >> 4));
+                    byte r = (byte)(255 - (value >> 2));
                     data[pixel++] = b;
                     data[pixel++] = g;
                     data[pixel++] = r;
                     data[pixel++] = 255;
                 }
-                oldRawData = new ushort[rawData.Length];
-                Buffer.BlockCopy(rawData, 0, oldRawData, 0, rawData.Length);
 
                 Marshal.Copy(data, 0, ptr, bytes);
             }
@@ -334,8 +376,6 @@ namespace Kinect_for_Windows_2._0_Demo
                     data[pixel++] = intensity;
                     data[pixel++] = 255;
                 }
-                oldRawData = new ushort[rawData.Length];
-                Buffer.BlockCopy(rawData, 0, oldRawData, 0, rawData.Length);
 
                 Marshal.Copy(data, 0, ptr, bytes);
             }
