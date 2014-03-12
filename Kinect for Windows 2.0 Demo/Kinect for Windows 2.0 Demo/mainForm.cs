@@ -371,9 +371,9 @@ namespace Kinect_for_Windows_2._0_Demo
                     int rawValue = rawData[i];
                     byte intensity = (byte)(rawValue >> 8);
 
-                    data[pixel++] = intensity;
-                    data[pixel++] = intensity;
-                    data[pixel++] = intensity;
+                    data[pixel++] = (byte)(128 - intensity);
+                    data[pixel++] = (byte)(128 - intensity);
+                    data[pixel++] = (byte)(128 - intensity);
                     data[pixel++] = 255;
                 }
 
