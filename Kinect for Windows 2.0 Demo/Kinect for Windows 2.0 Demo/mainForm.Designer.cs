@@ -42,6 +42,7 @@
             this.irButton = new System.Windows.Forms.Button();
             this.button1 = new System.Windows.Forms.Button();
             this.takePicButton = new System.Windows.Forms.Button();
+            this.pulseLabel = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
             // 
@@ -186,7 +187,7 @@
             // takePicButton
             // 
             this.takePicButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.takePicButton.Location = new System.Drawing.Point(840, 609);
+            this.takePicButton.Location = new System.Drawing.Point(778, 609);
             this.takePicButton.Name = "takePicButton";
             this.takePicButton.Size = new System.Drawing.Size(79, 23);
             this.takePicButton.TabIndex = 13;
@@ -194,11 +195,22 @@
             this.takePicButton.UseVisualStyleBackColor = true;
             this.takePicButton.Click += new System.EventHandler(this.takePicButton_Click);
             // 
+            // pulseLabel
+            // 
+            this.pulseLabel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.pulseLabel.AutoSize = true;
+            this.pulseLabel.Location = new System.Drawing.Point(863, 614);
+            this.pulseLabel.Name = "pulseLabel";
+            this.pulseLabel.Size = new System.Drawing.Size(45, 13);
+            this.pulseLabel.TabIndex = 14;
+            this.pulseLabel.Text = "Pulse: 0";
+            // 
             // mainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(976, 637);
+            this.Controls.Add(this.pulseLabel);
             this.Controls.Add(this.takePicButton);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.irButton);
@@ -241,6 +253,7 @@
         private System.Windows.Forms.Button irButton;
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.Button takePicButton;
+        private System.Windows.Forms.Label pulseLabel;
     }
 }
 

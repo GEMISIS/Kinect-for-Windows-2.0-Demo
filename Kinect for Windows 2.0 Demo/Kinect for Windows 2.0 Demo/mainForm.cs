@@ -44,10 +44,16 @@ namespace Kinect_for_Windows_2._0_Demo
         /// The raw pixel data for the IR image of what the Kinect sees.
         /// </summary>
         private ushort[] irImagePixelData = null;
+        private ushort[] irImagePixelDataOld = null;
         /// <summary>
         /// The raw pixel data for the long IR exposure image of what the Kinect sees.
         /// </summary>
         private ushort[] irLEImagePixelData = null;
+
+        long lastTime = 0;
+        uint pulses = 0;
+        Queue<float> hueValues = new Queue<float>();
+        Queue<float> irValues = new Queue<float>();
 
         /// <summary>
         /// The number of potential bodies.
@@ -71,9 +77,9 @@ namespace Kinect_for_Windows_2._0_Demo
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            if (KinectSensor.KinectSensors.Count > 0)
+            if (KinectSensor.GetDefault() != null)
             {
-                this.kinectSensor = KinectSensor.Default;
+                this.kinectSensor = KinectSensor.GetDefault();
 
                 if (this.kinectSensor != null)
                 {
@@ -82,14 +88,15 @@ namespace Kinect_for_Windows_2._0_Demo
                     FrameDescription colorFrameDescription = this.kinectSensor.ColorFrameSource.FrameDescription;
                     this.colorImagePixelData = new byte[colorFrameDescription.Width * colorFrameDescription.Height * 4];
                     FrameDescription irleFrameDescription = this.kinectSensor.LongExposureInfraredFrameSource.FrameDescription;
-                    this.irLEImagePixelData = new ushort[irleFrameDescription.LengthInPixels * irleFrameDescription.BytesPerPixel];
+                    this.irLEImagePixelData = new ushort[irleFrameDescription.LengthInPixels];
                     FrameDescription irFrameDescription = this.kinectSensor.InfraredFrameSource.FrameDescription;
                     this.irImagePixelData = new ushort[irFrameDescription.Width * irFrameDescription.Height];
+                    this.irImagePixelDataOld = new ushort[irFrameDescription.Width * irFrameDescription.Height];
 
                     this.bodyCount = this.kinectSensor.BodyFrameSource.BodyCount;
                     this.bodies = new Body[this.bodyCount];
 
-                    this.multiSourceFrameReader = this.kinectSensor.OpenMultiSourceFrameReader(FrameSourceTypes.Infrared | FrameSourceTypes.Depth | FrameSourceTypes.Color | FrameSourceTypes.Body);
+                    this.multiSourceFrameReader = this.kinectSensor.OpenMultiSourceFrameReader(FrameSourceTypes.Infrared | FrameSourceTypes.Depth | FrameSourceTypes.Color | FrameSourceTypes.Body | FrameSourceTypes.LongExposureInfrared);
 
                     this.multiSourceFrameReader.MultiSourceFrameArrived += multiSourceFrameReader_MultiSourceFrameArrived;
                 }
@@ -106,34 +113,148 @@ namespace Kinect_for_Windows_2._0_Demo
 
                 if (msFrame != null)
                 {
-                    using (msFrame)
+                    LongExposureInfraredFrameReference leirFrameReference = msFrame.LongExposureInfraredFrameReference;
+                    InfraredFrameReference irFrameReference = msFrame.InfraredFrameReference;
+                    ColorFrameReference colorFrameReference = msFrame.ColorFrameReference;
+                    DepthFrameReference depthFrameReference = msFrame.DepthFrameReference;
+                    BodyFrameReference bodyFrameReference = msFrame.BodyFrameReference;
+                    switch (this.imageType)
                     {
-                        LongExposureInfraredFrameReference leirFrameReference = msFrame.LongExposureInfraredFrameReference;
-                        InfraredFrameReference irFrameReference = msFrame.InfraredFrameReference;
-                        ColorFrameReference colorFrameReference = msFrame.ColorFrameReference;
-                        DepthFrameReference depthFrameReference = msFrame.DepthFrameReference;
-                        BodyFrameReference bodyFrameReference = msFrame.BodyFrameReference;
-                        switch (this.imageType)
+                        case ImageType.Color:
+                            useColorFrame(colorFrameReference);
+                            break;
+                        case ImageType.Depth:
+                            useDepthFrame(depthFrameReference);
+                            break;
+                        case ImageType.IR:
+                            useIRFrame(irFrameReference);
+                            break;
+                        case ImageType.LEIR:
+                            useLIRFrame(leirFrameReference);
+                            break;
+                    }
+                    useBodyFrame(bodyFrameReference);
+                    //updatePulse(colorFrameReference, irFrameReference, bodyFrameReference);
+                }
+            }
+            catch (Exception ex)
+            {
+            }
+        }
+
+        void updatePulse(ColorFrameReference colorFrameReference, InfraredFrameReference irFrameReference, BodyFrameReference bodyFrameReference)
+        {
+            long currentTime = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+
+            int width = 0;
+            int height = 0;
+            try
+            {
+                InfraredFrame IRFrame = irFrameReference.AcquireFrame();
+
+                if (IRFrame != null)
+                {
+                    using (IRFrame)
+                    {
+                        width = IRFrame.FrameDescription.Width;
+                        height = IRFrame.FrameDescription.Height;
+
+                        IRFrame.CopyFrameDataToArray(this.irImagePixelData);
+                    }
+                }
+            }
+            catch (Exception er)
+            {
+                string message = er.Message;
+                Console.WriteLine(message);
+                // Don't worry about empty frames.
+            }
+            try
+            {
+                if (this.bodyToTrack > -1)
+                {
+                    BodyFrame bodyFrame = bodyFrameReference.AcquireFrame();
+
+                    if (bodyFrame != null)
+                    {
+                        using (bodyFrame)
                         {
-                            case ImageType.Color:
-                                useColorFrame(colorFrameReference);
-                                break;
-                            case ImageType.Depth:
-                                useDepthFrame(depthFrameReference);
-                                break;
-                            case ImageType.IR:
-                                useIRFrame(irFrameReference);
-                                break;
-                            case ImageType.LEIR:
-                                useLIRFrame(leirFrameReference);
-                                break;
+                            bodyFrame.GetAndRefreshBodyData(this.bodies);
+
+                            Body body = this.bodies[this.bodyToTrack];
+                            if (body.IsTracked)
+                            {
+                                CameraSpacePoint headPosition = body.Joints[JointType.Head].Position;
+                                CameraSpacePoint neckPosition = body.Joints[JointType.Neck].Position;
+
+                                float centerX = neckPosition.X - headPosition.X;
+                                centerX = headPosition.X + (centerX / 2.0f);
+
+                                float centerY = neckPosition.Y - headPosition.Y;
+                                centerY = headPosition.Y + (centerY / 2.0f);
+
+                                centerX += 1.0f;
+                                centerX /= 2.0f;
+
+                                centerY += 1.0f;
+                                centerY /= 2.0f;
+
+                                if (this.colorImageBitmap != null)
+                                {
+                                    Color c = this.colorImageBitmap.GetPixel((int)(centerX * this.colorImageBitmap.Width), (int)(centerY * this.colorImageBitmap.Height));
+
+                                    hueValues.Enqueue(c.GetHue());
+                                    if (hueValues.Count > 10)
+                                    {
+                                        hueValues.Dequeue();
+                                    }
+
+                                    if (hueValues.Count >= 10)
+                                    {
+                                        //this.pulseLabel.Text = "Pulse: " + ((float)c.GetHue() / (float)hueValues.Average());
+                                        if (c.GetHue() > hueValues.Average())
+                                        {
+                                            this.pulseLabel.Text = "Pulse: " + ((float)(currentTime - lastTime) / (float)pulses);
+                                            //this.pulseLabel.Text = "Pulse: 1";
+                                            pulses += 1;
+                                        }
+                                        if (currentTime - lastTime > 1000 * 5)
+                                        {
+                                            lastTime = currentTime;
+                                            pulses = 0;
+                                        }
+                                        Console.WriteLine("Hue Average: " + hueValues.Average());
+                                    }
+                                }
+
+                                if (width > 0 && height > 0)
+                                {
+                                    ushort irValue = this.irImagePixelData[(int)(centerX * width) + (int)(centerY * height) * width];
+
+                                    irValues.Enqueue(irValue);
+                                    if (irValues.Count > 10)
+                                    {
+                                        irValues.Dequeue();
+                                    }
+
+                                    if (irValues.Count >= 10)
+                                    {
+                                        //Console.WriteLine("IR Average: " + irValues.Average());
+                                    }
+                                }
+
+                                //Console.WriteLine("Color: " + c.R + ", " + c.G + ", " + c.B);
+                                //Console.WriteLine("Position:" + centerX + ", " + centerY);
+                            }
                         }
-                        useBodyFrame(bodyFrameReference);
                     }
                 }
             }
             catch (Exception ex)
             {
+                string message = ex.Message;
+                Console.WriteLine(message);
+                // Don't worry about empty frames.
             }
         }
 
@@ -207,6 +328,8 @@ namespace Kinect_for_Windows_2._0_Demo
                         IRFrame.CopyFrameDataToArray(this.irImagePixelData);
 
                         this.updateBitmap(IRFrame.FrameDescription.Width, IRFrame.FrameDescription.Height, this.irImagePixelData, false);
+
+                        IRFrame.CopyFrameDataToArray(this.irImagePixelDataOld);
 
                         this.pictureBox1.Image = new Bitmap(this.colorImageBitmap, this.pictureBox1.Width, this.pictureBox1.Height);
                     }
@@ -368,12 +491,26 @@ namespace Kinect_for_Windows_2._0_Demo
                 int pixel = 0;
                 for (int i = 0; i < rawData.Length; i += 1)
                 {
-                    int rawValue = rawData[i];
-                    byte intensity = (byte)(rawValue >> 8);
+                    ushort currentRaw = rawData[i];
+                    ushort oldRaw = irImagePixelDataOld[i];
+                    int rawValue = Math.Abs(rawData[i] - irImagePixelDataOld[i]);
+                    if(rawValue > 1000)
+                    {
+                        byte intensity = (byte)(rawValue >> 8);
 
-                    data[pixel++] = (byte)(128 - intensity);
-                    data[pixel++] = (byte)(128 - intensity);
-                    data[pixel++] = (byte)(128 - intensity);
+                        data[pixel++] = 0;
+                        data[pixel++] = 0;
+                        data[pixel++] = 255;
+                    }
+                    else
+                    {
+                        byte intensity = (byte)(rawValue >> 8);
+
+                        data[pixel++] = intensity;
+                        data[pixel++] = 0;
+                        data[pixel++] = 0;
+                    }
+
                     data[pixel++] = 255;
                 }
 
@@ -427,34 +564,31 @@ namespace Kinect_for_Windows_2._0_Demo
         {
             Body body = this.bodies[this.bodyToTrack];
 
-            using (body)
+            if (body.IsTracked)
             {
-                if (body.IsTracked)
+                if (stopTrackingGesture(body))
                 {
-                    if (stopTrackingGesture(body))
-                    {
-                        facialDiagram1.setEyes(Eye.Left, EyeStatus.Closed);
-                        facialDiagram1.setEyes(Eye.Right, EyeStatus.Closed);
-                        facialDiagram1.setMouth(MouthStatus.Closed);
-                        this.leftHandStausLabel.Text = "Not Tracking";
-                        this.rightHandStatusLabel.Text = "Not Tracking";
-                        this.emotionStatusLabel.Text = "Not Tracking";
-                        updateRadar(null);
-                        this.bodyToTrack = -1;
-                    }
-                    else
-                    {
-                        this.updateEyes(body);
-                        this.updateMouth(body);
-                        this.updateHands(body);
-                        this.updateEmotions(body);
-                        this.updateRadar(body);
-                    }
+                    facialDiagram1.setEyes(Eye.Left, EyeStatus.Closed);
+                    facialDiagram1.setEyes(Eye.Right, EyeStatus.Closed);
+                    facialDiagram1.setMouth(MouthStatus.Closed);
+                    this.leftHandStausLabel.Text = "Not Tracking";
+                    this.rightHandStatusLabel.Text = "Not Tracking";
+                    this.emotionStatusLabel.Text = "Not Tracking";
+                    updateRadar(null);
+                    this.bodyToTrack = -1;
                 }
                 else
                 {
-                    this.bodyToTrack = -1;
+                    this.updateEyes(body);
+                    this.updateMouth(body);
+                    this.updateHands(body);
+                    this.updateEmotions(body);
+                    this.updateRadar(body);
                 }
+            }
+            else
+            {
+                this.bodyToTrack = -1;
             }
         }
         private bool stopTrackingGesture(Body body)
